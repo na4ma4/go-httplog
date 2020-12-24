@@ -11,6 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	loggerCallerSkip = 2
+)
+
+// ErrUnimplemented is returned when a method is unimplemented.
+var ErrUnimplemented = errors.New("unimplemented method")
+
 // loggingHandler is the http.Handler implementation for LoggingHandlerTo and its
 // friends.
 type loggingHandler struct {
@@ -18,9 +25,7 @@ type loggingHandler struct {
 	handler http.Handler
 }
 
-// ErrUnimplemented is returned when a method is unimplemented.
-var ErrUnimplemented = errors.New("unimplemented method")
-
+// ServeHTTP wraps the next handler ServeHTTP.
 func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	t := time.Now()
 	logger := makeLogger(w)
@@ -150,5 +155,8 @@ func writeLog(logger *zap.Logger, req *http.Request, url url.URL, ts time.Time, 
 //  http.ListenAndServe(":1123", loggedRouter)
 //
 func LoggingHandler(logger *zap.Logger, h http.Handler) http.Handler {
-	return loggingHandler{logger, h}
+	return loggingHandler{
+		logger.WithOptions(zap.AddCallerSkip(loggerCallerSkip)),
+		h,
+	}
 }
