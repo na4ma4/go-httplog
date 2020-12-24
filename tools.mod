@@ -1,4 +1,4 @@
-module github.com/na4ma4/go-httplo
+module github.com/na4ma4/go-httplog
 
 go 1.15
 
