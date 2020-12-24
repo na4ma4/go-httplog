@@ -30,8 +30,23 @@ func (h loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 type loggingResponseWriter interface {
-	commonLoggingResponseWriter
+	http.ResponseWriter
+	http.Flusher
 	http.Pusher
+	Status() int
+	Size() int
+}
+
+func makeLogger(w http.ResponseWriter) loggingResponseWriter {
+	return &responseLogger{w: w, status: http.StatusOK}
+}
+
+// responseLogger is wrapper of http.ResponseWriter that keeps track of its HTTP
+// status code and body size.
+type responseLogger struct {
+	w      http.ResponseWriter
+	status int
+	size   int
 }
 
 func (l *responseLogger) Push(target string, opts *http.PushOptions) error {
@@ -43,25 +58,6 @@ func (l *responseLogger) Push(target string, opts *http.PushOptions) error {
 	return p.Push(target, opts)
 }
 
-func makeLogger(w http.ResponseWriter) loggingResponseWriter {
-	return &responseLogger{w: w, status: http.StatusOK}
-}
-
-type commonLoggingResponseWriter interface {
-	http.ResponseWriter
-	http.Flusher
-	Status() int
-	Size() int
-}
-
-// responseLogger is wrapper of http.ResponseWriter that keeps track of its HTTP
-// status code and body size.
-type responseLogger struct {
-	w      http.ResponseWriter
-	status int
-	size   int
-}
-
 func (l *responseLogger) Header() http.Header {
 	return l.w.Header()
 }
@@ -70,7 +66,11 @@ func (l *responseLogger) Write(b []byte) (int, error) {
 	size, err := l.w.Write(b)
 	l.size += size
 
-	return size, fmt.Errorf("unable to write: %w", err)
+	if err != nil {
+		return size, fmt.Errorf("unable to write: %w", err)
+	}
+
+	return size, nil
 }
 
 func (l *responseLogger) WriteHeader(s int) {
