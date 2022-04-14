@@ -1,3 +1,4 @@
+// Deprecated: use github.com/na4ma4/go-zaptool instead.
 module github.com/na4ma4/go-httplog
 
 go 1.18
